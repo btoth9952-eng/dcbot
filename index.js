@@ -32,12 +32,13 @@ client.once("ready", async () => {
 // -------------------------
 app.get("/create-invite", async (req, res) => {
   try {
-    console.log("REQUEST:", req.query);
-
     const username = req.query.user;
     if (!username) return res.send("NO USER");
 
-    const guild = await client.guilds.fetch(process.env.GUILD_ID);
+    await client.guilds.fetch();
+    const guild = client.guilds.cache.first();
+
+    if (!guild) return res.send("NO GUILD");
 
     await guild.channels.fetch();
 
@@ -49,14 +50,15 @@ app.get("/create-invite", async (req, res) => {
 
     const invite = await channel.createInvite({
       maxAge: 0,
-      maxUses: 1
+      maxUses: 1,
+      unique: true
     });
 
     return res.send(invite.url);
 
   } catch (err) {
-    console.error("INVITE ERROR:", err);
-    return res.status(500).send("ERROR");
+    console.error("CREATE INVITE ERROR:", err);
+    return res.status(500).send("ERROR: " + err.message);
   }
 });
 // -------------------------

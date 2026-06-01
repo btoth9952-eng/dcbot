@@ -32,18 +32,19 @@ client.on("ready", async () => {
 // invite figyelés
 client.on("guildMemberAdd", async member => {
   const newInvites = await member.guild.invites.fetch();
-  const oldInvites = invites.get(member.guild.id);
 
-  const used = newInvites.find(inv =>
-    (oldInvites.get(inv.code) || 0) < inv.uses
-  );
+  const used = newInvites.find(inv => inviteMap.has(inv.code));
 
   if (!used) return;
 
-  const inviter = used.inviter;
+  const user = inviteMap.get(used.code);
 
-  console.log(`Invite: ${inviter.username} → +5 pont`);
+  console.log(`Invite: ${user} → +5 pont`);
 
+  fetch(`https://kasziradar.hu/api/add_points.php?user=${user}&points=5&secret=MY_SECRET`);
+
+  inviteMap.delete(used.code);
+});
   // PHP hívás
   fetch(`https://kasziradar.hu/api/add_points.php?user=${inviter.username}&points=5&secret=MY_SECRET`);
 

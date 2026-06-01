@@ -1,6 +1,11 @@
 import { Client, GatewayIntentBits } from "discord.js";
+import express from "express";
 import fetch from "node-fetch";
 
+const TOKEN = process.env.TOKEN;
+const PORT = process.env.PORT || 3000;
+
+// BOT
 const client = new Client({
   intents: [
     GatewayIntentBits.Guilds,
@@ -8,82 +13,82 @@ const client = new Client({
   ]
 });
 
-const TOKEN = process.env.TOKEN;
-
-// invite cache
-let invites = new Map();
-
-async function loadInvites(guild) {
-  const guildInvites = await guild.invites.fetch();
-  invites.set(
-    guild.id,
-    new Map(guildInvites.map(inv => [inv.code, inv.uses]))
-  );
-}
-
-client.on("ready", async () => {
-  console.log(`Bot online: ${client.user.tag}`);
-
-  client.guilds.cache.forEach(guild => {
-    loadInvites(guild);
-  });
-});
-
-// invite figyelés
-client.on("guildMemberAdd", async member => {
-  const newInvites = await member.guild.invites.fetch();
-
-  const used = newInvites.find(inv => inviteMap.has(inv.code));
-
-  if (!used) return;
-
-  const user = inviteMap.get(used.code);
-
-  console.log(`Invite: ${user} → +5 pont`);
-
-  fetch(`https://kasziradar.hu/api/add_points.php?user=${user}&points=5&secret=MY_SECRET`);
-
-  inviteMap.delete(used.code);
-});
-  // PHP hívás
-  fetch(`https://kasziradar.hu/api/add_points.php?user=${inviter.username}&points=5&secret=MY_SECRET`);
-
-  invites.set(
-    member.guild.id,
-    new Map(newInvites.map(inv => [inv.code, inv.uses]))
-  );
-});
-
-client.login(TOKEN);
-
-⚡ 1. BOT – INVITE GENERÁLÁS (EGYBEN MEGY)
-
-Tedd be a botodba ezt:
-
-🔥 index.js-hez (ÚJ RÉSZ)
-import express from "express";
-
+// WEB SERVER (Railway miatt kell)
 const app = express();
 app.use(express.json());
 
-let inviteMap = new Map(); 
-// code -> username
+// invite map: code -> username
+const inviteMap = new Map();
 
-app.get("/create-invite", async (req, res) => {
-  const username = req.query.user;
-
-  if (!username) return res.send("NO USER");
-
-  const guild = client.guilds.cache.first();
-  const channel = guild.channels.cache.find(c => c.isTextBased());
-
-  const invite = await channel.createInvite({
-    maxAge: 0,
-    maxUses: 1,
-    unique: true
-  });
-
-  inviteMap.set(invite.code, username);
-
-  res.send(`https://discord.gg/${invite.code}`);
+// -------------------------
+// BOT READY
+// -------------------------
+client.once("ready", async () => {
+  console.log(`Bot online: ${client.user.tag}`);
 });
+
+// -------------------------
+// INVITE GENERÁLÁS API
+// -------------------------
+app.get("/create-invite", async (req, res) => {
+  try {
+    const username = req.query.user;
+
+    if (!username) {
+      return res.send("NO USER");
+    }
+
+    const guild = client.guilds.cache.first();
+    if (!guild) return res.send("NO GUILD");
+
+    const channel = guild.channels.cache.find(c => c.isTextBased());
+    if (!channel) return res.send("NO CHANNEL");
+
+    const invite = await channel.createInvite({
+      maxAge: 0,
+      maxUses: 1,
+      unique: true
+    });
+
+    inviteMap.set(invite.code, username);
+
+    res.send(`https://discord.gg/${invite.code}`);
+  } catch (err) {
+    console.error(err);
+    res.send("ERROR");
+  }
+});
+
+// -------------------------
+// INVITE TRACKING
+// -------------------------
+client.on("guildMemberAdd", async (member) => {
+  try {
+    const newInvites = await member.guild.invites.fetch();
+
+    const used = newInvites.find(inv => inviteMap.has(inv.code));
+
+    if (!used) return;
+
+    const username = inviteMap.get(used.code);
+
+    console.log(`Invite: ${username} → +5 pont`);
+
+    await fetch(
+      `https://kasziradar.hu/api/add_points.php?user=${username}&points=5&secret=MY_SECRET`
+    );
+
+    inviteMap.delete(used.code);
+  } catch (err) {
+    console.error("Invite error:", err);
+  }
+});
+
+// -------------------------
+// START SERVER + BOT
+// -------------------------
+app.listen(PORT, () => {
+  console.log(`API server running on port ${PORT}`);
+});
+
+client.login(TOKEN);

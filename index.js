@@ -1,11 +1,10 @@
-import { Client, GatewayIntentBits } from "discord.js";
+import { Client, GatewayIntentBits, PermissionFlagsBits } from "discord.js";
 import express from "express";
 import fetch from "node-fetch";
 
 const TOKEN = process.env.TOKEN;
 const PORT = process.env.PORT || 3000;
 
-// BOT
 const client = new Client({
   intents: [
     GatewayIntentBits.Guilds,
@@ -13,54 +12,82 @@ const client = new Client({
   ]
 });
 
-// WEB SERVER (Railway miatt kell)
 const app = express();
 app.use(express.json());
 
-// invite map: code -> username
 const inviteMap = new Map();
 
 // -------------------------
-// BOT READY
+// READY
 // -------------------------
 client.once("ready", async () => {
   console.log(`Bot online: ${client.user.tag}`);
+
+  // fontos: guild cache fix
+  await client.guilds.fetch();
 });
 
 // -------------------------
-// INVITE GENERÁLÁS API
+// INVITE GENERÁLÁS
 // -------------------------
 app.get("/create-invite", async (req, res) => {
   try {
     const username = req.query.user;
-    if (!username) return res.send("NO USER");
 
-    await client.guilds.fetch();
-    const guild = client.guilds.cache.first();
+    if (!username) {
+      return res.status(400).send("NO USER");
+    }
 
-    if (!guild) return res.send("NO GUILD");
+    // guild fetch fix (NE cache-re építs)
+    const guilds = await client.guilds.fetch();
+    const guild = guilds.first();
 
-    await guild.channels.fetch();
+    if (!guild) {
+      return res.status(500).send("NO GUILD");
+    }
 
-    const channel = guild.channels.cache
-      .filter(c => c.isTextBased() && c.permissionsFor(client.user).has("CreateInstantInvite"))
-      .first();
+    const fullGuild = await guild.fetch();
+    await fullGuild.channels.fetch();
 
-    if (!channel) return res.send("NO CHANNEL");
+    // legbiztonságosabb: system channel
+    let channel = fullGuild.systemChannel;
 
+    // fallback ha nincs system channel
+    if (!channel) {
+      channel = fullGuild.channels.cache
+        .filter(c =>
+          c.isTextBased() &&
+          c.permissionsFor(client.user).has(PermissionFlagsBits.CreateInstantInvite)
+        )
+        .first();
+    }
+
+    if (!channel) {
+      return res.status(500).send("NO CHANNEL");
+    }
+
+    // invite create
     const invite = await channel.createInvite({
       maxAge: 0,
       maxUses: 1,
-      unique: true
+      unique: true,
+      reason: `Referral for ${username}`
     });
 
-    return res.send(invite.url);
+    if (!invite?.url) {
+      return res.status(500).send("INVITE FAILED");
+    }
+
+    inviteMap.set(invite.code, username);
+
+    return res.status(200).send(invite.url);
 
   } catch (err) {
     console.error("CREATE INVITE ERROR:", err);
     return res.status(500).send("ERROR: " + err.message);
   }
 });
+
 // -------------------------
 // INVITE TRACKING
 // -------------------------
@@ -81,13 +108,12 @@ client.on("guildMemberAdd", async (member) => {
     );
 
     inviteMap.delete(used.code);
+
   } catch (err) {
-    console.error("Invite error:", err);
+    console.error("Invite tracking error:", err);
   }
 });
 
-// -------------------------
-// START SERVER + BOT
 // -------------------------
 app.listen(PORT, () => {
   console.log(`API server running on port ${PORT}`);

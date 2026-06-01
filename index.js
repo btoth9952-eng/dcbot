@@ -37,25 +37,25 @@ app.get("/create-invite", async (req, res) => {
     const username = req.query.user;
     if (!username) return res.send("NO USER");
 
-    await client.guilds.fetch();
-
     const guild = await client.guilds.fetch(process.env.GUILD_ID);
-    console.log("GUILD OK");
 
-    const channel = await guild.channels.fetch(process.env.CHANNEL_ID);
-    console.log("CHANNEL OK");
+    await guild.channels.fetch();
+
+    const channel = guild.channels.cache
+      .filter(c => c.isTextBased() && c.permissionsFor(client.user).has("CreateInstantInvite"))
+      .first();
+
+    if (!channel) return res.send("NO CHANNEL");
 
     const invite = await channel.createInvite({
       maxAge: 0,
       maxUses: 1
     });
 
-    console.log("INVITE:", invite.url);
-
     return res.send(invite.url);
 
   } catch (err) {
-    console.error("ERROR:", err);
+    console.error("INVITE ERROR:", err);
     return res.status(500).send("ERROR");
   }
 });

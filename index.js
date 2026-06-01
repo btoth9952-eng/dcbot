@@ -54,3 +54,35 @@ client.on("guildMemberAdd", async member => {
 });
 
 client.login(TOKEN);
+
+⚡ 1. BOT – INVITE GENERÁLÁS (EGYBEN MEGY)
+
+Tedd be a botodba ezt:
+
+🔥 index.js-hez (ÚJ RÉSZ)
+import express from "express";
+
+const app = express();
+app.use(express.json());
+
+let inviteMap = new Map(); 
+// code -> username
+
+app.get("/create-invite", async (req, res) => {
+  const username = req.query.user;
+
+  if (!username) return res.send("NO USER");
+
+  const guild = client.guilds.cache.first();
+  const channel = guild.channels.cache.find(c => c.isTextBased());
+
+  const invite = await channel.createInvite({
+    maxAge: 0,
+    maxUses: 1,
+    unique: true
+  });
+
+  inviteMap.set(invite.code, username);
+
+  res.send(`https://discord.gg/${invite.code}`);
+});

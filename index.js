@@ -32,38 +32,33 @@ client.once("ready", async () => {
 // -------------------------
 app.get("/create-invite", async (req, res) => {
   try {
+    console.log("REQUEST:", req.query);
+
     const username = req.query.user;
+    if (!username) return res.send("NO USER");
 
-    if (!username) {
-      return res.status(400).send("NO USER");
-    }
+    await client.guilds.fetch();
 
-    // 🔥 biztos guild fetch (nem cache)
     const guild = await client.guilds.fetch(process.env.GUILD_ID);
-    if (!guild) return res.status(500).send("NO GUILD");
+    console.log("GUILD OK");
 
-    // 🔥 biztos channel fetch
     const channel = await guild.channels.fetch(process.env.CHANNEL_ID);
-    if (!channel || !channel.isTextBased()) {
-      return res.status(500).send("NO CHANNEL");
-    }
+    console.log("CHANNEL OK");
 
     const invite = await channel.createInvite({
       maxAge: 0,
-      maxUses: 1,
-      unique: true
+      maxUses: 1
     });
 
-    inviteMap.set(invite.code, username);
+    console.log("INVITE:", invite.url);
 
-    return res.send(`https://discord.gg/${invite.code}`);
+    return res.send(invite.url);
 
   } catch (err) {
-    console.error("CREATE INVITE ERROR:", err);
+    console.error("ERROR:", err);
     return res.status(500).send("ERROR");
   }
 });
-
 // -------------------------
 // INVITE TRACKING
 // -------------------------

@@ -1,10 +1,11 @@
 {
-  "name": "invite-bot",
+  "name": "discord-bot",
   "version": "1.0.0",
-  "main": "index.js",
   "type": "module",
+  "main": "index.js",
   "dependencies": {
     "discord.js": "^14.16.3",
+    "express": "^4.18.2",
     "node-fetch": "^3.3.2"
   }
 }

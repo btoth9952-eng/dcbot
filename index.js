@@ -117,7 +117,7 @@ console.log("WRITING TO FILE...");
 
 
 });
-
+const alreadyCounted = new Set();
 // -------------------------
 // JOIN TRACKING (FIXED)
 // -------------------------
@@ -132,6 +132,11 @@ let usedInvite = null;
 for (const inv of newInvites.values()) {
     const oldUses = oldInvites.get(inv.code) || 0;
 
+  if (alreadyCounted.has(member.user.id)) {
+    console.log("Already rewarded:", member.user.username);
+    return;
+}
+  
     if (inv.uses > oldUses) {
         usedInvite = inv;
         break;

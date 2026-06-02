@@ -121,10 +121,16 @@ client.on("guildMemberAdd", async (member) => {
 
         const newInvites = await member.guild.invites.fetch();
 
-        const usedInvite = newInvites.find(inv => {
-            const oldUses = oldInvites.get(inv.code) || 0;
-            return inv.uses > oldUses;
-        });
+let usedInvite = null;
+
+for (const inv of newInvites.values()) {
+    const oldUses = oldInvites.get(inv.code) || 0;
+
+    if (inv.uses > oldUses) {
+        usedInvite = inv;
+        break;
+    }
+}
 
         if (!usedInvite) {
             console.log("Nem található használt invite");

@@ -168,13 +168,7 @@ client.on("guildMemberAdd", async (member) => {
         console.error("JOIN ERROR:", err);
     }
 });
-console.log("INVITES:");
-newInvites.forEach(i => {
-    console.log(i.code, i.uses);
-});
 
-console.log("CACHED:");
-console.log([...oldInvites.entries()]);
 // -------------------------
 // EXPRESS SERVER
 // -------------------------

@@ -88,7 +88,6 @@ saveInvites(invites);
       return res.status(500).send("INVITE FAILED");
     }
 
-    inviteMap.set(invite.code, username);
 
     return res.status(200).send(invite.url);
 

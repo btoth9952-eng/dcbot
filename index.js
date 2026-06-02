@@ -17,7 +17,7 @@ const app = express();
 app.use(express.json());
 
 // -------------------------
-// FILE HANDLING
+// FILE HANDLING asd
 // -------------------------
 function loadInvites() {
     if (!fs.existsSync("invites.json")) return {};

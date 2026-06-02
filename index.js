@@ -133,8 +133,12 @@ client.on("guildMemberAdd", async (member) => {
         }
 
         const inviteMap = loadInvites();
-        const inviter = inviteMap[usedInvite.code];
+const inviter = inviteMap?.[usedInvite.code];
 
+if (!inviter) {
+    console.log("Nincs inviter mapping erre:", usedInvite.code);
+    return;
+}
         if (!inviter) {
             console.log("Invite code nincs hozzárendelve userhez");
             await cacheInvites(member.guild);

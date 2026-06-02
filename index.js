@@ -110,6 +110,11 @@ app.get("/create-invite", async (req, res) => {
         console.error("CREATE INVITE ERROR:", err);
         return res.status(500).send("ERROR: " + err.message);
     }
+
+  console.log("INVITE:", invite);
+console.log("CODE:", invite?.code);
+console.log("USERNAME:", username);
+console.log("WRITING TO FILE...");
 });
 
 // -------------------------
